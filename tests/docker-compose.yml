@@ -1,0 +1,13 @@
+version: "2"
+services:
+  postgis:
+    build:
+      context: .
+      dockerfile: Dockerfile.postgis
+    volumes:
+      - "/var/run/postgresql/:/var/run/postgresql/"
+    network_mode: host
+
+  memcache:
+    image: memcached:1.4.33
+    network_mode: host
