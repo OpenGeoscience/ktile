@@ -5,7 +5,7 @@ COPY . /opt/ktile
 VOLUME /opt/ktile
 
 RUN echo "@testing http://nl.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories
-RUN apk update && apk cache clean
+RUN apk update
 RUN apk add bash python python-dev py-pip gdal@testing gdal-dev@testing py-gdal@testing
 
 RUN apk add gcc linux-headers make g++ git
