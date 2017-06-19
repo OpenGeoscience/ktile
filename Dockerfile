@@ -43,4 +43,6 @@ VOLUME /opt/ktile
 
 RUN apk del gcc make g++ git
 
+WORKDIR /opt/ktile
+
 ENTRYPOINT ["/opt/ktile/docker-entrypoint.sh"]
