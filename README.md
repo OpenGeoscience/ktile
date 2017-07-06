@@ -45,6 +45,21 @@ Then open a modern web browser and you should be able to preview tiles at:
 This is a previewer that uses ModestMaps and OpenStreetMap tiles from
 http://tile.osm.org as defined in the default config file 'tilestache.cfg'
 
+## Docker Container
+
+Build the Docker Image
+
+    docker build -t ktile:latest .
+
+Run the container
+
+    docker run -it --rm --net=host ktile:latest
+
+Go to
+
+    http://localhost:8080/osm/preview.html
+
+If you see osm tiles that means everything is working as expected.
 
 ## Documentation
 
