@@ -39,7 +39,7 @@ The renderTile() method draws a single tile at a time, and has these arguments:
 
 - width, height: in pixels
 - srs: projection as Proj4 string.
-  "+proj=longlat +ellps=WGS84 +datum=WGS84" is an example, 
+  "+proj=longlat +ellps=WGS84 +datum=WGS84" is an example,
   see http://spatialreference.org for more.
 - coord: Coordinate object representing a single tile.
 
@@ -48,19 +48,19 @@ metatiles. It has these arguments:
 
 - width, height: in pixels
 - srs: projection as Proj4 string.
-  "+proj=longlat +ellps=WGS84 +datum=WGS84" is an example, 
+  "+proj=longlat +ellps=WGS84 +datum=WGS84" is an example,
   see http://spatialreference.org for more.
 - xmin, ymin, xmax, ymax: coordinates of bounding box in projected coordinates.
 - zoom: zoom level of final map. Technically this can be derived from the other
   arguments, but that's a hassle so we'll pass it in explicitly.
-  
+
 A provider may offer a method for custom response type, getTypeByExtension().
 This method accepts a single argument, a filename extension string (e.g. "png",
 "json", etc.) and returns a tuple with twon strings: a mime-type and a format.
 Note that for image and non-image tiles alike, renderArea() and renderTile()
 methods on a provider class must return a object with a save() method that
 can accept a file-like object and a format name, e.g. this should word:
-    
+
     provder.renderArea(...).save(fp, "TEXT")
 
 ... if "TEXT" is a valid response format according to getTypeByExtension().
@@ -111,38 +111,26 @@ try:
 except ImportError:
     pass
 
+import pkg_resources as pr
+
+_ktile_providers = {}
+
 def getProviderByName(name):
     """ Retrieve a provider object by name.
-    
+
         Raise an exception if the name doesn't work out.
     """
-    if name.lower() == 'mapnik':
-        from . import Mapnik
-        return Mapnik.ImageProvider
+    global _ktile_providers
 
-    elif name.lower() == 'proxy':
-        return Proxy
+    if not _ktile_providers:
+        _ktile_providers = {ep.name:ep.load() for ep in
+                            pr.iter_entry_points('ktile.providers')}
 
-    elif name.lower() == 'url template':
-        return UrlTemplate
+    try:
+        return _ktile_providers[name.lower()]
+    except KeyError:
+        raise Exception('Unknown provider name: "%s"' % name)
 
-    elif name.lower() == 'vector':
-        from . import Vector
-        return Vector.Provider
-
-    elif name.lower() == 'mbtiles':
-        from . import MBTiles
-        return MBTiles.Provider
-
-    elif name.lower() == 'mapnik grid':
-        from . import Mapnik
-        return Mapnik.GridProvider
-
-    elif name.lower() == 'sandwich':
-        from . import Sandwich
-        return Sandwich.Provider
-
-    raise Exception('Unknown provider name: "%s"' % name)
 
 class Verbatim:
     ''' Wrapper for PIL.Image that saves raw input bytes if modes and formats match.
