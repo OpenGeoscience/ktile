@@ -39,4 +39,14 @@ setup(name='TileStache',
       scripts=['scripts/tilestache-compose.py', 'scripts/tilestache-seed.py', 'scripts/tilestache-clean.py', 'scripts/tilestache-server.py', 'scripts/tilestache-render.py', 'scripts/tilestache-list.py'],
       data_files=[('share/tilestache', ['TileStache/Goodies/Providers/DejaVuSansMono-alphanumeric.ttf'])],
       package_data={'TileStache': ['VERSION', '../doc/*.html']},
+      entry_points={
+          'ktile.providers': [
+              'mapnik = TileStache.Mapnik:ImageProvider',
+              'proxy = TileStache.Providers:Proxy',
+              'url template = TileStache.Providers:UrlTemplate',
+              'vector = TileStache.Vector:Provider',
+              'mbtiles = TileStache.MBTiles:Provider',
+              'mapnik grid = TileStache.Mapnik:GridProvider',
+              'sandwich = TileStache.Sandwich:Provider'
+          ]},
       license='BSD')
