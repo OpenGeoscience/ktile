@@ -74,7 +74,7 @@ import os
 import logging
 
 
-from six import StringIO as BytesIO
+from six import BytesIO
 from string import Template
 
 try:

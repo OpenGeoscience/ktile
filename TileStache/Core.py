@@ -146,7 +146,7 @@ The preview can be accessed through a URL like /<layer name>/preview.html:
 import logging
 from sys import modules
 from wsgiref.headers import Headers
-from six import StringIO as BytesIO
+from six import BytesIO
 from time import time
 
 from .Pixels import load_palette, apply_palette, apply_palette256
