@@ -7,12 +7,16 @@ Mapnik 2.0.0 and above.
 from __future__ import absolute_import
 from time import time
 from os.path import exists
-from thread import allocate_lock
 from urlparse import urlparse, urljoin
 from itertools import count
 from glob import glob
 from tempfile import mkstemp
 from urllib import urlopen
+
+try:
+    from thread import allocate_lock
+except ImportError:
+    from _thread import allocate_lock
 
 import os
 import logging
