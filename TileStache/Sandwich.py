@@ -118,10 +118,22 @@ A complete example configuration might look like this:
     }
 """
 from re import search
-from StringIO import StringIO
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
+
 from itertools import product
-from urlparse import urljoin
-from urllib import urlopen
+
+try:
+    from urlparse import urljoin
+except ImportError:
+    from urllib.parse import urljoin
+
+try:
+    from urllib import urlopen
+except ImportError:
+    from urllib.request import urlopen
 
 from . import Core
 
