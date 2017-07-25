@@ -61,17 +61,7 @@ documentation for TileStache.Providers, TileStache.Core, and TileStache.Geograph
 import sys
 import logging
 from os.path import join as pathjoin
-try:
-    from urllib.parse import urljoin, urlparse
-except ImportError:
-    # Python 2
-    from urlparse import urljoin, urlparse
 from mimetypes import guess_type
-try:
-    from urllib.request import urlopen
-except ImportError:
-    # Python 2
-    from urllib import urlopen
 from json import dumps
 
 try:
@@ -81,6 +71,8 @@ except ImportError:
 
 from ModestMaps.Geo import Location
 from ModestMaps.Core import Coordinate
+from six.moves.urllib.parse import urljoin, urlparse
+from six.moves.urllib.request import urlopen
 
 from . import Core
 from . import Caches

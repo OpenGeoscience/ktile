@@ -4,6 +4,9 @@ from operator import add
 
 from ..Core import KnownUnknown
 
+from six.moves import reduce
+
+
 geometry_types = {
     'Point': 'esriGeometryPoint',
     'LineString': 'esriGeometryPolyline',

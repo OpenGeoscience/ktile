@@ -6,11 +6,7 @@ from tempfile import mkstemp
 from os import close, write, unlink
 from optparse import OptionParser
 from os.path import abspath
-
-try:
-    from _thread import allocate_lock
-except ImportError:
-    from thread import allocate_lock
+from six.moves._thread import allocate_lock
 
 import ModestMaps
 

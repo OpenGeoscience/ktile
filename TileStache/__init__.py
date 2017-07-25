@@ -20,32 +20,12 @@ try:
     from urlparse import parse_qs
 except ImportError:
     from cgi import parse_qs
-try:
-    from io import StringIO
-except ImportError:
-    # Python 2
-    from StringIO import StringIO
 from os.path import dirname, join as pathjoin, realpath
 from datetime import datetime, timedelta
-try:
-    from urllib.parse import urljoin, urlparse
-except ImportError:
-    # Python 2
-    from urlparse import urljoin, urlparse
 from wsgiref.headers import Headers
-try:
-    from urllib.request import urlopen
-except ImportError:
-    # Python 2
-    from urllib import urlopen
 from os import getcwd
 from time import time
 
-try:
-    import http.client as httplib
-except ImportError:
-    # Python 2
-    import httplib
 import logging
 
 try:
@@ -62,6 +42,13 @@ _previous_configs = {}
 
 from . import Core
 from . import Config
+
+import six
+from six import StringIO
+from six.moves import http_client
+from six.moves.urllib.parse import urljoin, urlparse
+from six.moves.urllib.request import urlopen
+
 
 # regular expression for PATH_INFO
 _pathinfo_pat = re.compile(r'^/?(?P<l>\w.+)/(?P<z>\d+)/(?P<x>-?\d+)/(?P<y>-?\d+)\.(?P<e>\w+)$')
@@ -120,7 +107,7 @@ def parseConfig(configHandle):
         dirpath = '.'
     else:
         scheme, host, path, p, q, f = urlparse(configHandle)
-        
+
         if scheme == '':
             scheme = 'file'
             path = realpath(path)
@@ -180,7 +167,7 @@ def requestLayer(config, path_info):
         Config parameter can be a file path string for a JSON configuration file
         or a configuration object with 'cache', 'layers', and 'dirpath' properties.
     """
-    if type(config) in (str, unicode):
+    if type(config) in six.string_types:
         #
         # Should be a path to a configuration file we can load;
         # build a tuple key into previously-seen config objects.
@@ -366,7 +353,7 @@ class WSGITileServer:
             on each request, applicable only when config is a JSON file.
         """
 
-        if type(config) in (str, unicode, dict):
+        if type(config) in (str, six.text_type, dict):
             self.autoreload = autoreload
             self.config_path = config
 
@@ -422,7 +409,7 @@ class WSGITileServer:
         if content:
             headers.setdefault('Content-Length', str(len(content)))
 
-        start_response('%d %s' % (code, httplib.responses[code]), headers.items())
+        start_response('%d %s' % (code, http_client.responses[code]), headers.items())
         return [content]
 
 def modpythonHandler(request):

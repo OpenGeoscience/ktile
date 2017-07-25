@@ -8,17 +8,11 @@ For a more general implementation, try the Vector provider:
     http://tilestache.org/doc/#vector-provider
 '''
 from math import pi
-try:
-    from urllib.parse import urljoin, urlparse
-except ImportError:
-    # Python 2
-    from urlparse import urljoin, urlparse
-try:
-    from urllib.request import urlopen
-except ImportError:
-    # Python 2
-    from urllib import urlopen
+
 from os.path import exists
+import six
+from six.moves.urllib.parse import urljoin, urlparse
+from six.moves.urllib.request import urlopen
 
 try:
     from psycopg2.extras import RealDictCursor
@@ -39,32 +33,32 @@ tolerances = [6378137 * 2 * pi / (2 ** (zoom + 8)) for zoom in range(20)]
 
 class Provider:
     ''' VecTiles provider for PostGIS data sources.
-    
+
         Parameters:
-        
+
           dbinfo:
             Required dictionary of Postgres connection parameters. Should
             include some combination of 'host', 'user', 'password', and 'database'.
-        
+
           queries:
             Required list of Postgres queries, one for each zoom level. The
             last query in the list is repeated for higher zoom levels, and null
             queries indicate an empty response.
-            
+
             Query must use "__geometry__" for a column name, and must be in
             spherical mercator (900913) projection. A query may include an
             "__id__" column, which will be used as a feature ID in GeoJSON
             instead of a dynamically-generated hash of the geometry. A query
             can additionally be a file name or URL, interpreted relative to
             the location of the TileStache config file.
-            
+
             If the query contains the token "!bbox!", it will be replaced with
             a constant bounding box geomtry like this:
             "ST_SetSRID(ST_MakeBox2D(ST_MakePoint(x, y), ST_MakePoint(x, y)), <srid>)"
-            
+
             This behavior is modeled on Mapnik's similar bbox token feature:
             https://github.com/mapnik/mapnik/wiki/PostGIS#bbox-token
-          
+
           clip:
             Optional boolean flag determines whether geometries are clipped to
             tile boundaries or returned in full. Default true: clip geometries.
@@ -77,20 +71,20 @@ class Provider:
           srid:
             Optional numeric SRID used by PostGIS for spherical mercator.
             Default 900913.
-        
+
           simplify:
             Optional floating point number of pixels to simplify all geometries.
             Useful for creating double resolution (retina) tiles set to 0.5, or
             set to 0.0 to prevent any simplification. Default 1.0.
-        
+
           simplify_until:
             Optional integer specifying a zoom level where no more geometry
             simplification should occur. Default 16.
-        
+
         Sample configuration, for a layer with no results at zooms 0-9, basic
         selection of lines with names and highway tags for zoom 10, a remote
         URL containing a query for zoom 11, and a local file for zooms 12+:
-        
+
           "provider":
           {
             "class": "TileStache.Goodies.VecTiles:Provider",
@@ -132,7 +126,7 @@ class Provider:
         '''
         '''
         self.layer = layer
-        
+
         keys = 'host', 'user', 'password', 'database', 'port', 'dbname'
         self.dbinfo = dict([(k, v) for (k, v) in dbinfo.items() if k in keys])
 
@@ -148,7 +142,7 @@ class Provider:
         if isinstance(queries, dict):
             # Add 1 to include space for zoom level 0
             n_zooms = max(int(z) for z in queries) + 1
-            queryiter = ((int(z), q) for z, q in queries.iteritems())
+            queryiter = ((int(z), q) for z, q in six.iteritems(queries))
         else:  # specified as array
             n_zooms = len(queries)
             queryiter = enumerate(queries)
@@ -158,21 +152,21 @@ class Provider:
         for z, query in queryiter:
             if query is None:
                 continue
-        
+
             #
             # might be a file or URL?
             #
             url = urljoin(layer.config.dirpath, query)
             scheme, h, path, p, q, f = urlparse(url)
-            
+
             if scheme in ('file', '') and exists(path):
                 query = open(path).read()
-            
+
             elif scheme == 'http' and ' ' not in url:
                 query = urlopen(url).read()
-        
+
             self.queries[z] = query
-        
+
     def renderTile(self, width, height, srs, coord):
         ''' Render a single tile, return a Response instance.
         '''
@@ -184,10 +178,10 @@ class Provider:
         ll = self.layer.projection.coordinateProj(coord.down())
         ur = self.layer.projection.coordinateProj(coord.right())
         bounds = ll.x, ll.y, ur.x, ur.y
-        
+
         if not query:
             return EmptyResponse(bounds)
-        
+
         if query not in self.columns:
             self.columns[query] = query_columns(self.dbinfo, self.srid, query, bounds)
 
@@ -195,7 +189,7 @@ class Provider:
             return EmptyResponse(bounds)
 
         tolerance = self.simplify * tolerances[coord.zoom] if coord.zoom < self.simplify_until else None
-        
+
         return Response(self.dbinfo, self.srid, query, self.columns[query], bounds, tolerance, coord.zoom, self.clip, coord, self.layer.name(), self.padding)
 
     def getTypeByExtension(self, extension):
@@ -203,30 +197,30 @@ class Provider:
         '''
         if extension.lower() == 'mvt':
             return 'application/octet-stream+mvt', 'MVT'
-        
+
         elif extension.lower() == 'json':
             return 'application/json', 'JSON'
-        
+
         elif extension.lower() == 'topojson':
             return 'application/json', 'TopoJSON'
 
         elif extension.lower() == 'pbf':
             return 'application/x-protobuf', 'PBF'
-        
+
         else:
             raise ValueError(extension)
 
 class MultiProvider:
     ''' VecTiles provider to gather PostGIS tiles into a single multi-response.
-        
+
         Returns a MultiResponse object for GeoJSON or TopoJSON requests.
-    
+
         names:
           List of names of vector-generating layers from elsewhere in config.
-        
+
         Sample configuration, for a layer with combined data from water
         and land areas, both assumed to be vector-returning layers:
-        
+
           "provider":
           {
             "class": "TileStache.Goodies.VecTiles:MultiProvider",
@@ -239,7 +233,7 @@ class MultiProvider:
     def __init__(self, layer, names):
         self.layer = layer
         self.names = names
-        
+
     def renderTile(self, width, height, srs, coord):
         ''' Render a single tile, return a Response instance.
         '''
@@ -250,29 +244,29 @@ class MultiProvider:
         '''
         if extension.lower() == 'json':
             return 'application/json', 'JSON'
-        
+
         elif extension.lower() == 'topojson':
             return 'application/json', 'TopoJSON'
 
         elif extension.lower() == 'pbf':
             return 'application/x-protobuf', 'PBF'
-        
+
         else:
             raise ValueError(extension)
 
 class Connection:
     ''' Context manager for Postgres connections.
-    
+
         See http://www.python.org/dev/peps/pep-0343/
         and http://effbot.org/zone/python-with-statement.htm
     '''
     def __init__(self, dbinfo):
         self.dbinfo = dbinfo
-    
+
     def __enter__(self):
         self.db = connect(**self.dbinfo).cursor(cursor_factory=RealDictCursor)
         return self.db
-    
+
     def __exit__(self, type, value, traceback):
         self.db.connection.close()
 
@@ -281,7 +275,7 @@ class Response:
     '''
     def __init__(self, dbinfo, srid, subquery, columns, bounds, tolerance, zoom, clip, coord, layer_name='', padding=0):
         ''' Create a new response object with Postgres connection info and a query.
-        
+
             bounds argument is a 4-tuple with (xmin, ymin, xmax, ymax).
         '''
         self.dbinfo = dbinfo
@@ -308,34 +302,34 @@ class Response:
         '''
         with Connection(self.dbinfo) as db:
             db.execute(self.query[format])
-            
+
             features = []
-            
+
             for row in db.fetchall():
                 if row['__geometry__'] is None:
                     continue
-            
+
                 wkb = bytes(row['__geometry__'])
                 prop = dict([(k, v) for (k, v) in row.items()
                              if k not in ('__geometry__', '__id__')])
-                
+
                 if '__id__' in row:
                     features.append((wkb, prop, row['__id__']))
-                
+
                 else:
                     features.append((wkb, prop))
 
         if format == 'MVT':
             mvt.encode(out, features)
-        
+
         elif format == 'JSON':
             geojson.encode(out, features, self.zoom, self.clip)
-        
+
         elif format == 'TopoJSON':
             ll = SphericalMercator().projLocation(Point(*self.bounds[0:2]))
             ur = SphericalMercator().projLocation(Point(*self.bounds[2:4]))
             topojson.encode(out, features, (ll.lon, ll.lat, ur.lon, ur.lat), self.clip)
-        
+
         elif format == 'PBF':
             pbf.encode(
                 out, features, self.coord, layer_name=self.layer_name)
@@ -348,21 +342,21 @@ class EmptyResponse:
     '''
     def __init__(self, bounds):
         self.bounds = bounds
-    
+
     def save(self, out, format):
         '''
         '''
         if format == 'MVT':
             mvt.encode(out, [])
-        
+
         elif format == 'JSON':
             geojson.encode(out, [], 0, False)
-        
+
         elif format == 'TopoJSON':
             ll = SphericalMercator().projLocation(Point(*self.bounds[0:2]))
             ur = SphericalMercator().projLocation(Point(*self.bounds[2:4]))
             topojson.encode(out, [], (ll.lon, ll.lat, ur.lon, ur.lat), False)
-        
+
         elif format == 'PBF':
             pbf.encode(out, [], None, self.bounds)
 
@@ -378,13 +372,13 @@ class MultiResponse:
         self.config = config
         self.names = names
         self.coord = coord
-    
+
     def save(self, out, format):
         '''
         '''
         if format == 'TopoJSON':
             topojson.merge(out, self.names, self.config, self.coord)
-        
+
         elif format == 'JSON':
             geojson.merge(out, self.names, self.config, self.coord)
 
@@ -411,12 +405,12 @@ def query_columns(dbinfo, srid, subquery, bounds):
         while (abs(bounds[2] - bounds[0]) * abs(bounds[2] - bounds[0])) < 1.61e15:
             bbox = 'ST_MakeBox2D(ST_MakePoint(%f, %f), ST_MakePoint(%f, %f))' % bounds
             bbox = 'ST_SetSRID(%s, %d)' % (bbox, srid)
-        
+
             query = subquery.replace('!bbox!', bbox)
-        
+
             db.execute(query + '\n LIMIT 1') # newline is important here, to break out of comments.
             row = db.fetchone()
-            
+
             if row is None:
                 #
                 # Try zooming out three levels (8x) to look for features.
@@ -425,9 +419,9 @@ def query_columns(dbinfo, srid, subquery, bounds):
                           bounds[1] - (bounds[3] - bounds[1]) * 3.5,
                           bounds[2] + (bounds[2] - bounds[0]) * 3.5,
                           bounds[3] + (bounds[3] - bounds[1]) * 3.5)
-                
+
                 continue
-            
+
             column_names = set(row.keys())
             return column_names
 
@@ -455,7 +449,7 @@ def get_features(dbinfo, query, n_try=1):
 
     return features
 
-        
+
 def build_query(srid, subquery, subcolumns, bounds, tolerance, is_geo, is_clipped, padding=0, scale=None):
     ''' Build and return an PostGIS query.
     '''
@@ -465,13 +459,13 @@ def build_query(srid, subquery, subcolumns, bounds, tolerance, is_geo, is_clippe
 
     bbox = 'ST_SetSRID(%s, %d)' % (bbox, srid)
     geom = 'q.__geometry__'
-    
+
     if is_clipped:
         geom = 'ST_Intersection(%s, %s)' % (geom, bbox)
-    
+
     if tolerance is not None:
         geom = 'ST_SimplifyPreserveTopology(%s, %.2f)' % (geom, tolerance)
-    
+
     if is_geo:
         geom = 'ST_Transform(%s, 4326)' % geom
 
@@ -481,18 +475,18 @@ def build_query(srid, subquery, subcolumns, bounds, tolerance, is_geo, is_clippe
                 % (geom, -bounds[0], -bounds[1],
                    scale / (bounds[2] - bounds[0]),
                    scale / (bounds[3] - bounds[1])))
-    
+
     subquery = subquery.replace('!bbox!', bbox)
     columns = ['q."%s"' % c for c in subcolumns if c not in ('__geometry__', )]
-    
+
     if '__geometry__' not in subcolumns:
         raise Exception("There's supposed to be a __geometry__ column.")
-    
+
     if '__id__' not in subcolumns:
         columns.append('Substr(MD5(ST_AsBinary(q.__geometry__)), 1, 10) AS __id__')
-    
+
     columns = ', '.join(columns)
-    
+
     return '''SELECT %(columns)s,
                      ST_AsBinary(%(geom)s) AS __geometry__
               FROM (

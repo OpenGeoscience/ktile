@@ -23,12 +23,12 @@ in the lookup table. If the final byte is 0xFFFF, there is no transparency.
 """
 from struct import unpack, pack
 from math import sqrt, ceil, log
-try:
-    from urllib.request import urlopen
-except ImportError:
-    # Python 2
-    from urllib import urlopen
+
 from operator import add
+from six.moves.urllib.request import urlopen
+
+from six.moves import reduce
+
 
 try:
     from PIL import Image
@@ -111,7 +111,7 @@ def apply_palette(image, palette, t_index):
     else:
         # PIL still uses Image.fromstring
         output = Image.fromstring('P', image.size, ''.join(indexes))
- 
+
     bits = int(ceil(log(len(palette)) / log(2)))
 
     palette += [(0, 0, 0)] * (256 - len(palette))

@@ -66,18 +66,20 @@ from sys import stderr
 from os import write, close, unlink
 from tempfile import mkstemp
 from subprocess import Popen, PIPE
-from httplib import HTTPConnection
 from os.path import basename, join
-from StringIO import StringIO
 from datetime import datetime
-from urlparse import urlparse
 from base64 import b16encode
-from urllib import urlopen
 from gzip import GzipFile
 from time import time
 
 from TileStache.Core import KnownUnknown, NoTileLeftBehind
 from TileStache.Geography import getProjectionByName
+from six import StringIO
+from six.moves.http_client import HTTPConnection
+from six.moves.urllib.request import urlopen
+
+from six.moves.urllib.parse import urlparse
+
 
 try:
     from psycopg2 import connect as _connect, ProgrammingError
@@ -165,7 +167,7 @@ def create_tables(db, prefix, tmp_prefix):
         try:
             db.execute('CREATE TABLE %(prefix)s_%(table)s ( LIKE %(tmp_prefix)s_%(table)s )' % locals())
 
-        except ProgrammingError, e:
+        except ProgrammingError as e:
             db.execute('ROLLBACK')
 
             if e.pgcode != '42P07':
@@ -339,7 +341,7 @@ class Provider:
 
             return ConfirmationResponse(coord, message, True)
         
-        except Exception, e:
+        except Exception as e:
             message = 'Error in tile %d/%d/%d: %s' % (coord.zoom, coord.column, coord.row, e)
             
             raise NoTileLeftBehind(ConfirmationResponse(coord, message, False))

@@ -36,55 +36,53 @@ By default, encode() approximates the floating point precision of WKB geometry
 to 26 bits for a significant compression improvement and no visible impact on
 rendering at zoom 18 and lower.
 '''
-try:
-    from io import StringIO
-except ImportError:
-    # Python 2
-    from StringIO import StringIO
 from zlib import decompress as _decompress, compress as _compress
 from struct import unpack as _unpack, pack as _pack
 import json
 
 from .wkb import approximate_wkb
 
+from six import StringIO
+
+
 def decode(file):
     ''' Decode an MVT file into a list of (WKB, property dict) features.
-    
+
         Result can be passed directly to mapnik.PythonDatasource.wkb_features().
     '''
     head = file.read(4)
-    
+
     if head != '\x89MVT':
         raise Exception('Bad head: "%s"' % head)
-    
+
     body = StringIO(_decompress(file.read(_next_int(file))))
     features = []
-    
+
     for i in range(_next_int(body)):
         wkb = body.read(_next_int(body))
         raw = body.read(_next_int(body))
 
         props = json.loads(raw)
         features.append((wkb, props))
-    
+
     return features
 
 def encode(file, features):
     ''' Encode a list of (WKB, property dict) features into an MVT stream.
-    
+
         Geometries in the features list are assumed to be in spherical mercator.
         Floating point precision in the output is approximated to 26 bits.
     '''
     parts = []
-    
+
     for feature in features:
         wkb = approximate_wkb(feature[0])
         prop = json.dumps(feature[1])
-        
+
         parts.extend([_pack('>I', len(wkb)), wkb, _pack('>I', len(prop)), prop])
-    
+
     body = _compress(_pack('>I', len(features)) + ''.join(parts))
-    
+
     file.write('\x89MVT')
     file.write(_pack('>I', len(body)))
     file.write(body)

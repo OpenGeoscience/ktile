@@ -5,30 +5,19 @@ known as "mapnik grid". Both require Mapnik to be installed; Grid requires
 Mapnik 2.0.0 and above.
 """
 from __future__ import absolute_import
+from six.moves.urllib.parse import urlparse, urljoin
+from six.moves.urllib.request import urlopen
 from time import time
 from os.path import exists
 from itertools import count
 from glob import glob
 from tempfile import mkstemp
-
-try:
-    from urllib import urlopen
-except ImportError:
-    from urllib.request import urlopen
-
-try:
-    from urlparse import urlparse, urljoin
-except ImportError:
-    from urllib.parse import urlparse, urljoin
-
-try:
-    from thread import allocate_lock
-except ImportError:
-    from _thread import allocate_lock
-
+from six.moves._thread import allocate_lock
 import os
 import logging
 import json
+import six
+from six.moves import reduce
 
 # We enabled absolute_import because case insensitive filesystems
 # cause this file to be loaded twice (the name of this file
@@ -169,7 +158,7 @@ class ImageProvider:
         else:
             # PIL still uses Image.fromstring
             img = Image.fromstring('RGBA', (width, height), img.tostring())
-        
+
         logging.debug('TileStache.Mapnik.ImageProvider.renderArea() %dx%d in %.3f from %s', width, height, time() - start_time, self.mapfile)
 
         return img
@@ -382,7 +371,7 @@ def merge_grids(grid1, grid2):
                 outkeys.append('')
                 continue
 
-            outkey = '%d' % keygen.next()
+            outkey = '%d' % next(keygen)
             outkeys.append(outkey)
 
             datum = ingrid['data'][key]
@@ -420,7 +409,7 @@ def encode_id(id):
     if id >= 92:
         id = id + 1
     if id > 127:
-        return unichr(id)
+        return six.unichr(id)
     return chr(id)
 
 def decode_char(char):

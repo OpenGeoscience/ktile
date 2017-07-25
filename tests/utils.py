@@ -7,16 +7,15 @@ from subprocess import Popen, PIPE, STDOUT
 import shlex
 import sys
 from time import sleep
-from threading  import Thread
-try:
-    from Queue import Queue, Empty
-except ImportError:
-    from queue import Queue, Empty  # python 3.x
-
+from threading import Thread
 
 from ModestMaps.Core import Coordinate
 from TileStache import getTile, parseConfig
 from TileStache.Core import KnownUnknown
+from six.moves.queue import Queue, Empty
+
+import six
+
 
 def request(config_content, layer_name, format, row, column, zoom):
     '''
@@ -24,7 +23,7 @@ def request(config_content, layer_name, format, row, column, zoom):
     request
     '''
     if sys.version_info.major == 2:
-        is_string = isinstance(config_content, basestring)
+        is_string = isinstance(config_content, six.string_types)
     else:
         is_string = isinstance(config_content, (str, bytes))
 

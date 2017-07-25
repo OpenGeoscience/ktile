@@ -20,13 +20,15 @@
       http://localhost:8888/layer-name?width=600&height=600&xmin=-100&ymin=-100&xmax=100&ymax=100
 """
 
-from urlparse import parse_qsl
 from datetime import timedelta
 from datetime import datetime
-from StringIO import StringIO
 
 from TileStache import WSGITileServer
 from TileStache.Core import KnownUnknown
+from six import StringIO
+
+from six.moves.urllib.parse import parse_qsl
+
 
 class WSGIServer (WSGITileServer):
     """ WSGI Application that can handle WMS-style requests for static images.
@@ -85,6 +87,6 @@ class WSGIServer (WSGITileServer):
             start_response('200 OK', headers)
             return output.getvalue()
         
-        except KnownUnknown, e:
+        except KnownUnknown as e:
             start_response('400 Bad Request', [('Content-Type', 'text/plain')])
             return str(e)

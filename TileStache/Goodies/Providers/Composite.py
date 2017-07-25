@@ -150,12 +150,8 @@ This complete example can be found in the included examples directory.
 import sys
 import re
 
-from urllib import urlopen
-from urlparse import urljoin
 from os.path import join as pathjoin
 from xml.dom.minidom import parse as parseXML
-from StringIO import StringIO
-
 try:
     from json import loads as jsonload
 except ImportError:
@@ -177,6 +173,12 @@ except ImportError:
     import Image
 
 from TileStache.Core import KnownUnknown
+
+import six
+from six import StringIO
+from six.moves.urllib.parse import urljoin
+from six.moves.urllib.request import urlopen
+
 
 class Provider:
     """ Provides a Photoshop-like rendering pipeline, making it possible to use
@@ -200,7 +202,7 @@ class Provider:
         """
         self.layer = layer
 
-        if type(stack) in (str, unicode):
+        if type(stack) in six.string_types:
             stack = jsonload(urlopen(urljoin(layer.config.dirpath, stack)).read())
 
         if type(stack) in (list, dict):
@@ -422,7 +424,7 @@ def make_color(color):
           orange: "#f90", "#ff9900", "#ff9900ff"
           transparent orange: "#f908", "#ff990088"
     """
-    if type(color) not in (str, unicode):
+    if type(color) not in six.string_types:
         raise KnownUnknown('Color must be a string: %s' % repr(color))
 
     if color[0] != '#':

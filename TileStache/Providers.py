@@ -73,18 +73,9 @@ For an example of a non-image provider, see TileStache.Vector.Provider.
 import os
 import logging
 
-try:
-    from io import BytesIO
-except ImportError:
-    # Python 2
-    from StringIO import StringIO as BytesIO
+
+from six import StringIO as BytesIO
 from string import Template
-try:
-    import urllib.request as urllib2
-except ImportError:
-    # Python 2
-    import urllib2
-import urllib
 
 try:
     from PIL import Image
@@ -113,6 +104,9 @@ except ImportError:
 
 import pkg_resources as pr
 
+from six.moves import urllib
+
+
 _ktile_providers = {}
 
 def getProviderByName(name):
@@ -139,7 +133,7 @@ class Verbatim:
         self.buffer = BytesIO(bytes)
         self.format = None
         self._image = None
-        
+
         #
         # Guess image format based on magic number, if possible.
         # http://www.astro.keele.ac.uk/oldusers/rno/Computing/File_magic.html
@@ -152,21 +146,21 @@ class Verbatim:
             '\x4d\x4d\x00\x2a': 'TIFF',
             '\x49\x49\x2a\x00': 'TIFF'
             }
-        
+
         if bytes[:4] in magic:
             self.format = magic[bytes[:4]]
 
         else:
             self.format = self.image().format
-    
+
     def image(self):
         ''' Return a guaranteed instance of PIL.Image.
         '''
         if self._image is None:
             self._image = Image.open(self.buffer)
-        
+
         return self._image
-    
+
     def convert(self, mode):
         if mode == self.image().mode:
             return self
@@ -175,7 +169,7 @@ class Verbatim:
 
     def crop(self, bbox):
         return self.image().crop(bbox)
-    
+
     def save(self, output, format):
         if format == self.format:
             output.write(self.buffer.getvalue())
@@ -184,11 +178,11 @@ class Verbatim:
 
 class Proxy:
     """ Proxy provider, to pass through and cache tiles from other places.
-    
+
         This provider is identified by the name "proxy" in the TileStache config.
-        
+
         Additional arguments:
-        
+
         - url (optional)
             URL template for remote tiles, for example:
             "http://tile.openstreetmap.org/{Z}/{X}/{Y}.png"
@@ -202,9 +196,9 @@ class Proxy:
 
 
         Either url or provider is required. When both are present, url wins.
-        
+
         Example configuration:
-        
+
         {
             "name": "proxy",
             "url": "http://tile.openstreetmap.org/{Z}/{X}/{Y}.png"
@@ -251,9 +245,9 @@ class Proxy:
         urls = self.provider.getTileUrls(coord)
 
         # Tell urllib2 get proxies if set in the environment variables <protocol>_proxy
-        # see: https://docs.python.org/2/library/urllib2.html#urllib2.ProxyHandler
-        proxy_support = urllib2.ProxyHandler()
-        url_opener = urllib2.build_opener(proxy_support)
+        # see: https://docs.python.org/2/library/urllib2.html#urllib.request.ProxyHandler
+        proxy_support = urllib.request.ProxyHandler()
+        url_opener = urllib.request.build_opener(proxy_support)
 
         for url in urls:
             body = url_opener.open(url, timeout=self.timeout).read()
@@ -277,11 +271,11 @@ class Proxy:
 
 class UrlTemplate:
     """ Built-in URL Template provider. Proxies map images from WMS servers.
-        
+
         This provider is identified by the name "url template" in the TileStache config.
-        
+
         Additional arguments:
-        
+
         - template (required)
             String with substitutions suitable for use in string.Template.
 
@@ -301,7 +295,7 @@ class UrlTemplate:
     def __init__(self, layer, template, referer=None, source_projection=None,
                  timeout=None):
         """ Initialize a UrlTemplate provider with layer and template string.
-        
+
             http://docs.python.org/library/string.html#template-strings
         """
         self.layer = layer
@@ -329,7 +323,7 @@ class UrlTemplate:
 
     def renderArea(self, width, height, srs, xmin, ymin, xmax, ymax, zoom):
         """ Return an image for an area.
-        
+
             Each argument (width, height, etc.) is substituted into the template.
         """
         if self.source_projection is not None:
@@ -347,12 +341,12 @@ class UrlTemplate:
                    'xmin': xmin, 'ymin': ymin, 'xmax': xmax, 'ymax': ymax}
 
         href = self.template.safe_substitute(mapping)
-        req = urllib2.Request(href)
+        req = urllib.request.Request(href)
 
         if self.referer:
             req.add_header('Referer', self.referer)
 
-        body = urllib2.urlopen(req, timeout=self.timeout).read()
+        body = urllib.request.urlopen(req, timeout=self.timeout).read()
         tile = Verbatim(body)
 
         return tile

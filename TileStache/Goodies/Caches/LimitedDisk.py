@@ -168,7 +168,7 @@ class Cache:
         try:
             umask_old = os.umask(self.umask)
             os.makedirs(dirname(fullpath), 0777&~self.umask)
-        except OSError, e:
+        except OSError as e:
             if e.errno != 17:
                 raise
         finally:

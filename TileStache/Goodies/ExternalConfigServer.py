@@ -6,7 +6,6 @@
       gunicorn --bind localhost:8888 "TileStache.Goodies.ExternalConfigServer:WSGIServer(url)"
 """
 
-from urllib import urlopen
 import logging
 
 try:
@@ -15,6 +14,9 @@ except ImportError:
 	from simplejson import load as json_load
 
 import TileStache
+
+from six.moves.urllib.request import urlopen
+
 
 class DynamicLayers:
 

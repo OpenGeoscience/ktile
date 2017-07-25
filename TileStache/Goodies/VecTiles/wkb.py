@@ -14,11 +14,9 @@ See also:
 '''
 
 from struct import unpack
-try:
-    from io import StringIO
-except ImportError:
-    # Python 2
-    from StringIO import StringIO
+
+from six import StringIO
+
 
 #
 # wkbByteOrder
@@ -53,7 +51,7 @@ def copy_int_little(src, dest):
     '''
     word = src.read(4)
     dest.write(word)
-    
+
     (val, ) = unpack('<I', word)
     return val
 
@@ -62,7 +60,7 @@ def copy_int_big(src, dest):
     '''
     word = src.read(4)
     dest.write(word)
-    
+
     (val, ) = unpack('>I', word)
     return val
 
@@ -88,7 +86,7 @@ def approx_line(src, dest, copy_int, approx_point):
     '''
     '''
     points = copy_int(src, dest)
-    
+
     for i in range(points):
         approx_point(src, dest)
 
@@ -96,7 +94,7 @@ def approx_polygon(src, dest, copy_int, approx_point):
     '''
     '''
     rings = copy_int(src, dest)
-    
+
     for i in range(rings):
         approx_line(src, dest, copy_int, approx_point)
 
@@ -104,35 +102,35 @@ def approx_geometry(src, dest):
     '''
     '''
     end = copy_byte(src, dest)
-    
+
     if end == wkbNDR:
         copy_int = copy_int_little
         approx_point = approx_point_little
-    
+
     elif end == wkbXDR:
         copy_int = copy_int_big
         approx_point = approx_point_big
-    
+
     else:
         raise ValueError(end)
-    
+
     type = copy_int(src, dest)
-    
+
     if type == wkbPoint:
         approx_point(src, dest)
-            
+
     elif type == wkbLineString:
         approx_line(src, dest, copy_int, approx_point)
-            
+
     elif type == wkbPolygon:
         approx_polygon(src, dest, copy_int, approx_point)
-            
+
     elif type in wkbMultis:
         parts = copy_int(src, dest)
-        
+
         for i in range(parts):
             approx_geometry(src, dest)
-            
+
     else:
         raise ValueError(type)
 
@@ -145,7 +143,7 @@ def approximate_wkb(wkb_in):
 
     assert len(wkb_in) == input.tell(), 'The whole WKB was not processed'
     assert len(wkb_in) == len(wkb_out), 'The output WKB is the wrong length'
-    
+
     return wkb_out
 
 if __name__ == '__main__':
@@ -155,59 +153,59 @@ if __name__ == '__main__':
 
     from shapely.wkb import loads
     from shapely.geometry import *
-    
+
     point1 = Point(random(), random())
     point2 = loads(approximate_wkb(point1.wkb))
-    
+
     assert hypot(point1.x - point2.x, point1.y - point2.y) < 1e-8
-    
-    
-    
+
+
+
     point1 = Point(random(), random())
     point2 = Point(random(), random())
     point3 = point1.union(point2)
     point4 = loads(approximate_wkb(point3.wkb))
-    
+
     assert hypot(point3.geoms[0].x - point4.geoms[0].x, point3.geoms[0].y - point4.geoms[0].y) < 1e-8
     assert hypot(point3.geoms[1].x - point4.geoms[1].x, point3.geoms[1].y - point4.geoms[1].y) < 1e-8
-    
-    
-    
+
+
+
     line1 = Point(random(), random()).buffer(1 + random(), 3).exterior
     line2 = loads(approximate_wkb(line1.wkb))
-    
+
     assert abs(1. - line2.length / line1.length) < 1e-8
-    
-    
-    
+
+
+
     line1 = Point(random(), random()).buffer(1 + random(), 3).exterior
     line2 = Point(random(), random()).buffer(1 + random(), 3).exterior
     line3 = MultiLineString([line1, line2])
     line4 = loads(approximate_wkb(line3.wkb))
-    
+
     assert abs(1. - line4.length / line3.length) < 1e-8
-    
-    
-    
+
+
+
     poly1 = Point(random(), random()).buffer(1 + random(), 3)
     poly2 = loads(approximate_wkb(poly1.wkb))
-    
+
     assert abs(1. - poly2.area / poly1.area) < 1e-8
-    
-    
-    
+
+
+
     poly1 = Point(random(), random()).buffer(2 + random(), 3)
     poly2 = Point(random(), random()).buffer(1 + random(), 3)
     poly3 = poly1.difference(poly2)
     poly4 = loads(approximate_wkb(poly3.wkb))
-    
+
     assert abs(1. - poly4.area / poly3.area) < 1e-8
-    
-    
-    
+
+
+
     poly1 = Point(random(), 2 + random()).buffer(1 + random(), 3)
     poly2 = Point(2 + random(), random()).buffer(1 + random(), 3)
     poly3 = poly1.union(poly2)
     poly4 = loads(approximate_wkb(poly3.wkb))
-    
+
     assert abs(1. - poly4.area / poly3.area) < 1e-8

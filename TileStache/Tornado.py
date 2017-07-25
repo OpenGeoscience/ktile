@@ -1,5 +1,6 @@
 import os
 
+import six
 import tornado.ioloop
 import tornado.web
 
@@ -19,21 +20,21 @@ class TornadoRequestHandler(tornado.web.RequestHandler):
         try:
                 self.tsconfig = TileStache.parseConfig(self.config)
         except:
-            print "Error loading Tilestache config:"
+            print("Error loading Tilestache config:")
             raise
 
     def get(self, *args, **kwargs):
         if self.autoreload: # re-parse the config file on every request
             try:
                 self.tsconfig = parseConfig(self.config)
-            except Exception, e:
+            except Exception as e:
                 raise Core.KnownUnknown("Error loading Tilestache configuration:\n%s" % str(e))
 
         status_code, headers, content = TileStache.requestHandler2(
                                             self.tsconfig, args[0])
 
         # Get the header
-        header = headers.items()[0]
+        header = list(headers.items())[0]
 
         # Tornado syntax for passing headers
         self.set_header(header[0], header[1])
@@ -56,7 +57,7 @@ class TornadoTileApplication(tornado.web.Application):
         config = kwargs.get("config") or None
         autoreload = kwargs.get("autoreload") or None
 
-        if type(config) in (str, unicode, dict):
+        if type(config) in (str, six.text_type, dict):
             hargs = dict(config=config, autoreload=autoreload)
             kwargs['handlers'] = [(r"/(.*)", TornadoRequestHandler, hargs),
                                   (r'/(favicon.ico)',
