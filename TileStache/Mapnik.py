@@ -92,7 +92,7 @@ class ImageProvider:
         self.layer = layer
         self.mapnik = None
 
-        engine = mapnik.FontEngine.instance()
+        engine = mapnik.FontEngine
 
         if fonts:
             fontshref = urljoin(layer.config.dirpath, fonts)

@@ -399,7 +399,7 @@ class WSGITileServer:
 
         status_code, headers, content = requestHandler2(self.config, path_info, query_string, script_name)
 
-        return self._response(start_response, status_code, str(content), headers)
+        return self._response(start_response, status_code, content, headers)
 
     def _response(self, start_response, code, content='', headers=None):
         """
